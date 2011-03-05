@@ -1,0 +1,108 @@
+<html>
+<head>
+<script src="jquery-1.4.4.js" type="text/javascript"></script>
+<script src="jlinq-3.0.2.min.js" type="text/javascript"></script>
+<script src="encoder.js" type="text/javascript"></script>
+<script type="text/javascript">
+
+$(document).ready(function(){
+var html = $('<div></div>')
+
+var Groups = new Object();
+
+Groups = function(){
+this.groupNames = [];
+var group_names = this.groupNames;
+this.meetups = [];
+var meetups = this.meetups;
+var groups = this;
+this.getMeetups =
+function(callback){
+	for(var i = 0; i < group_names.length; i++)
+	    {
+		$.getJSON('https://api.meetup.com/events.json/?group_urlname=' + group_names[i] + '&key=8072676612439244c143e34301a256&callback=?',
+		function(data){
+			console.log(data);
+			var meetup;
+			if(data){
+			if(data.results.length > 1)
+			{
+			    meetup = jlinq.from(data.results).min("event_date");
+			}
+			else
+			{
+			    meetup = data.results[0];
+			}
+			if(meetup)
+			groups.meetups.push(meetup);
+			else
+			groups.meetups.push({name : 'empty'});
+                        
+			if(groups.meetups.length == group_names.length)
+			{
+                             for(i=0; i < groups.groupNames.length; i++)
+                        {
+                           buildHTML(groups.meetups[i]);
+                           
+                        }
+                        
+                        $("#code").append(html);
+                        }}}
+		);
+	}}
+}
+
+
+
+
+function buildHTML(meetup)
+{   
+    if(meetup.name != "empty"){	
+	var datetime = meetup.time;
+	datetime = datetime.split(' ');
+	var weekday = datetime[0];
+	var month = datetime[1];
+	var day = datetime[2];
+	var time_array = datetime[3].split(':');
+	var hours = time_array[0], minutes = time_array[1], time;
+	console.log(hours, minutes)
+	
+	if(hours > 12)
+	{
+		hours -= 12;
+		time = hours + ':' + minutes + "pm";
+	}
+	else{
+		time = hours + ':' + minutes + "am";
+	}
+	
+        var meetup_time = weekday + ' '  + month + ' ' + day + ' ' + time;
+	console.log("this is what you have access to (view in firebug, go to console, view properties)", meetup);
+	html.append('<h3>' + meetup_time + ' ' + meetup.name + ' ' + meetup.group_name  + '</h3>');
+	html.append('<img style="float:left" src="' + meetup.photo_url + '"/><p>');
+	html.append(Encoder.htmlDecode(meetup.description) + '</p>');
+	html.append('<a href="' + meetup.event_url + '">Click to RSVP </a>');
+	}
+}
+
+$("#Add").click(function(){
+  groups.groupNames.push($("#enterMeetup").val());
+});
+
+$("#Generate").click(function(){
+  
+    groups.getMeetups();
+   
+});
+
+var groups = new Groups();
+
+})
+</script>
+</head>
+<body>
+Enter your meetup: <input type="text" id="enterMeetup" /></br>
+<input type="button" value="Add Meetup" id="Add" /><input type="button" id="Generate" value="Generate Code" />
+<div id="code"></div>
+</body>
+</html>
